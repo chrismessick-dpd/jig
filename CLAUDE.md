@@ -35,6 +35,14 @@ Jig is an online editor and compiler for Arduino-style firmware: the page edits 
   through `boards.json`'s `flasher` and clears the address after). Sign out from Jig (the hub's `sidefoot.js`) deletes
   `jig-local` and `jig-local-demo`; EE's own list (`SUITE_DBS` in its `app.js`) still needs them, held back because
   another session had EE's `app.js` open (2026-11-20).
+- **Build progress (2026-11-20, Chris: "live link and steps"):** while a build runs, the panel shows four stages
+  (waiting for GitHub, the board's tools, compiling, saving the result) with each one's time and the last build's
+  total, from GitHub's Actions API (`store.progress`, `JIG.store.stagesFrom`, matched to the workflow's job and step
+  names: rename a step in `tools/workflow/build.yml` and the mapping goes with it), and a **Watch the log on GitHub ↗**
+  link to the run (GitHub streams it live). The steps need **Actions: Read** on the sign-in GitHub App; without it the
+  API answers 403 and only the link shows. Chris added the permission (2026-11-20); a check right after still got 403
+  ("Resource not accessible by integration"), so the installation's approval of the new permission, or the other app
+  (production and dev are separate), was still pending. The demo simulates the stages.
 - Not linked from the hub.
 
 ## Rules

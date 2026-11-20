@@ -200,13 +200,16 @@
   async function poll() {
     const w = state.wait;
     if (!w) return;
-    let r = null;
+    let r = null, pr = null;
     try { r = await state.store.result(w.id, w.commit); } catch (e) { /* try again */ }
+    // Where GitHub Actions has got to (needs Actions: Read on the sign-in; without it only the live-log link shows).
+    if (!r && state.store.progress && !w.noSteps) { try { pr = await state.store.progress(w.id, w.commit); } catch (e) { pr = null; } }
     if (state.wait !== w) return;
+    if (pr) { w.progress = pr.noAccess ? null : pr; w.logUrl = pr.logUrl || w.logUrl; if (pr.noAccess) w.noSteps = true; }
     if (r) {
       state.wait = null; clearInterval(tickTimer);
       const c = state.cur;
-      if (c && c.id === w.id && c.build && c.build.commit === w.commit) { c.build.result = r; showMarks(); }
+      if (c && c.id === w.id && c.build && c.build.commit === w.commit) { c.build.result = r; c.build.logUrl = w.logUrl || ''; showMarks(); }
       if (!c || c.id !== w.id) toast('The build of ' + (r.name || w.id) + (r.ok ? ' passed' : ' failed'));
       else if (!r.ok) state.logOpen = false;
       renderAll();
@@ -319,6 +322,18 @@
       '<button class="jg-tab jg-tab-add" data-act="addfile" title="Add a file to the sketch">' + ICON.plus + '</button>';
   }
 
+  const fmtSecs = n => n < 90 ? Math.round(n) + ' s' : Math.floor(n / 60) + ' min ' + String(Math.round(n % 60)).padStart(2, '0') + ' s';
+  // The build's stages as a checklist: ✓ done with its time, the current one with a spinner and its time so far.
+  function stagesHtml(stages) {
+    const secs = x => x.start ? Math.max(0, ((x.end ? Date.parse(x.end) : Date.now()) - Date.parse(x.start)) / 1000) : null;
+    return '<ol class="jg-stages">' + stages.map(x => {
+      const t = secs(x), mark = x.state === 'done' ? '✓' : x.state === 'failed' ? '✕' : x.state === 'now' ? '<span class="jg-spin"></span>' : '';
+      return '<li class="jg-stage is-' + esc(x.state) + '"><span class="jg-stage-mark" aria-hidden="true">' + mark + '</span><span class="jg-stage-name">' + esc(x.label) + '</span>' +
+        (t != null && x.state !== 'todo' ? '<span class="jg-muted">' + esc(fmtSecs(t)) + (x.state === 'now' ? '…' : '') + '</span>' : '<span></span>') +
+        '<span class="jg-sr">' + esc({ done: 'done', now: 'in progress', todo: 'not started', failed: 'failed' }[x.state] || '') + '</span></li>';
+    }).join('') + '</ol>';
+  }
+
   function renderBuild() {
     const el = $('#build'), c = state.cur;
     if (!el || !c) return;
@@ -329,14 +344,18 @@
       h = '<div class="jg-bhead"><span class="jg-state jg-state-warn">▲ No result after 10 minutes</span></div><p class="jg-bnote">The build of ' + esc(w.commit.slice(0, 8)) +
         ' hasn\'t written its result. GitHub Actions may be queued or off in ' + esc(DATA.repo) + '. <a href="https://github.com/' + DATA.owner + '/' + DATA.repo + '/actions" target="_blank" rel="noopener">See the builds on GitHub</a> · <button class="jg-link" data-act="rewait">Keep waiting</button></p>';
     } else if (w) {
-      const s = Math.round((Date.now() - w.t0) / 1000);
-      h = '<div class="jg-bhead"><span class="jg-state jg-state-busy"><span class="jg-spin"></span>Building ' + esc(w.commit.slice(0, 8)) + '…</span><span class="jg-muted">' + s + ' s</span></div>' +
-        '<p class="jg-bnote">' + (DEMO ? 'The demo simulates the build in this browser.' : 'GitHub Actions in ' + esc(DATA.repo) + ' is compiling it. A build usually takes under a minute, longer the first time after the board package changes.') + '</p>';
+      const s = Math.round((Date.now() - w.t0) / 1000), pr = w.progress, log = w.logUrl || (state.store.logUrl ? state.store.logUrl(w.commit) : '');
+      h = '<div class="jg-bhead"><span class="jg-state jg-state-busy"><span class="jg-spin"></span>Building ' + esc(w.commit.slice(0, 8)) + '…</span><span class="jg-muted">' + s + ' s' +
+        (pr && pr.usual ? ' · the last build took ' + esc(fmtSecs(pr.usual)) : '') + '</span>' +
+        (log ? '<a class="jg-loglink" href="' + esc(log) + '" target="_blank" rel="noopener" title="GitHub shows the build\'s log line by line as it runs">Watch the log on GitHub ↗</a>' : '') + '</div>';
+      h += pr && pr.stages ? stagesHtml(pr.stages)
+        : '<p class="jg-bnote">' + (DEMO ? 'The demo simulates the build in this browser.' : 'GitHub Actions in ' + esc(DATA.repo) + ' is compiling it. A build usually takes a minute or two, longer the first time after the board package changes.') + '</p>';
     } else if (r) {
       const errs = (r.messages || []).filter(m => m.severity === 'error'), warns = (r.messages || []).filter(m => m.severity === 'warning');
       h = '<div class="jg-bhead">' + (r.ok ? '<span class="jg-state jg-state-ok">✓ Built</span>' : '<span class="jg-state jg-state-err">✕ Build failed</span>') +
         '<span class="jg-muted">' + esc(String(r.commit || '').slice(0, 8)) + (r.seconds != null ? ' · ' + esc(Number(r.seconds)) + ' s' : '') + (r.startedAt ? ' · ' + esc(ago(r.startedAt)) : '') + '</span>' +
-        (c.dirty ? '<span class="jg-muted">· your edits since aren\'t built</span>' : '') + '</div>';
+        (c.dirty ? '<span class="jg-muted">· your edits since aren\'t built</span>' : '') +
+        (!DEMO && state.store.logUrl ? '<a class="jg-loglink" href="' + esc(c.build.logUrl || state.store.logUrl(c.build.commit)) + '" target="_blank" rel="noopener">The build on GitHub ↗</a>' : '') + '</div>';
       if (r.ok && r.size) {
         const bar = (n, max, label) => max ? '<div class="jg-use"><span>' + label + '</span><div class="jg-use-bar"><i style="width:' + Math.min(100, n / max * 100).toFixed(1) + '%"></i></div><span class="jg-muted">' + kb(n) + ' of ' + kb(max) + ' (' + Math.round(n / max * 100) + '%)</span></div>' : '';
         h += '<div class="jg-uses">' + bar(+r.size.flash || 0, +r.size.flashMax || 0, 'Flash') + bar(+r.size.ram || 0, +r.size.ramMax || 0, 'RAM') + '</div>';

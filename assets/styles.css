@@ -118,3 +118,19 @@
   .jg-board-chip { display: none; }
   .jg-build { max-height: 45%; }
 }
+
+/* The build's stages while it runs (GitHub's Actions API, or the demo's simulation), and the live-log link. */
+.jg-loglink { margin-left: auto; font-size: 12.5px; color: var(--accent); text-decoration: none; white-space: nowrap; }
+.jg-loglink:hover { text-decoration: underline; }
+.jg-stages { list-style: none; margin: 8px 0 2px; padding: 0; display: grid; gap: 3px; max-width: 560px; }
+.jg-stage { display: grid; grid-template-columns: 18px 1fr auto; gap: 9px; align-items: center; font-size: 13px; padding: 3px 8px; border-radius: 7px; }
+.jg-stage-mark { display: grid; place-items: center; font-weight: 700; }
+.jg-stage.is-done .jg-stage-mark { color: var(--pass); }
+.jg-stage.is-now { background: var(--accent-soft); }
+.jg-stage.is-now .jg-stage-mark { color: var(--accent); }
+.jg-stage.is-now .jg-stage-name { font-weight: 600; }
+.jg-stage.is-todo { color: var(--text-3); }
+.jg-stage.is-todo .jg-stage-mark::before { content: ''; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--hair-2); }
+.jg-stage.is-failed { background: var(--issue-soft); background-image: var(--issue-hatch); }
+.jg-stage.is-failed .jg-stage-mark { color: var(--issue); }
+.jg-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

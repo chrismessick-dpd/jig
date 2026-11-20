@@ -169,7 +169,61 @@
       return b64bytes(b.content);
     }
 
-    return { kind: 'github', open, load, example, save, result, binary, shasOf, repo: cfg.owner + '/' + cfg.repo };
+    // Where a build has got to in GitHub Actions: the run for that commit and its jobs' steps, as stages (stagesFrom),
+    // with how long the last finished build took. Needs Actions: Read on the sign-in; without it, { noAccess: true }.
+    async function progress(id, commit) {
+      let runs;
+      try { runs = await gs.api('/actions/runs?branch=main&per_page=10'); }
+      catch (e) { if (e.status === 403 || e.status === 404) return { noAccess: true, logUrl: checksUrl(commit) }; throw e; }
+      const list = (runs && runs.workflow_runs) || [];
+      const run = list.find(r => r.head_sha === commit) || null;
+      const last = list.find(r => r.head_sha !== commit && r.status === 'completed' && r.conclusion === 'success' && r.run_started_at);
+      const usual = last ? Math.round((Date.parse(last.updated_at) - Date.parse(last.run_started_at)) / 1000) : null;
+      let jobs = [];
+      if (run) { try { jobs = ((await gs.api('/actions/runs/' + run.id + '/jobs')) || {}).jobs || []; } catch (e) { jobs = []; } }
+      return { stages: stagesFrom(run, jobs), usual, logUrl: run && /^https:\/\/github\.com\//.test(run.html_url) ? run.html_url : checksUrl(commit) };
+    }
+    const checksUrl = commit => 'https://github.com/' + encodeURIComponent(cfg.owner) + '/' + encodeURIComponent(cfg.repo) + '/commit/' + commit + '/checks';
+
+    return { kind: 'github', open, load, example, save, result, binary, shasOf, progress, logUrl: checksUrl, repo: cfg.owner + '/' + cfg.repo };
+  }
+
+  // A run and its jobs (GitHub's Actions API) as Jig's four stages. Each: { key, label, state: 'todo' | 'now' | 'done' |
+  // 'failed', start, end } (ISO times, or null). Matched to tools/workflow/build.yml by job and step names.
+  const STAGES = [
+    { key: 'queue', label: 'Waiting for GitHub to start it' },
+    { key: 'tools', label: 'Getting the board\'s tools ready' },
+    { key: 'compile', label: 'Compiling' },
+    { key: 'publish', label: 'Saving the result' }
+  ];
+  function stagesFrom(run, jobs) {
+    const out = STAGES.map(s => Object.assign({ state: 'todo', start: null, end: null }, s));
+    const [queue, tools, compile, publish] = out;
+    const job = name => (jobs || []).find(j => j.name === name);
+    const failed = x => x && (x.conclusion === 'failure' || x.conclusion === 'cancelled' || x.conclusion === 'timed_out');
+    queue.start = run ? run.created_at : null;
+    const build = job('build'), pub = job('publish'), plan = job('plan');
+    if (!build || !build.started_at || build.status === 'queued') {
+      queue.state = failed(plan) || (run && failed(run) && !build) ? 'failed' : 'now';
+      return out;
+    }
+    queue.state = 'done'; queue.end = build.started_at;
+    const steps = build.steps || [], bstep = steps.find(s => s.name === 'Build');
+    tools.start = build.started_at;
+    if (!bstep || bstep.status === 'queued' || bstep.status === 'pending' || !bstep.started_at) {
+      tools.state = failed(build) || steps.some(failed) ? 'failed' : 'now';
+      return out;
+    }
+    tools.state = 'done'; tools.end = bstep.started_at;
+    compile.start = bstep.started_at;
+    if (bstep.status !== 'completed') { compile.state = 'now'; return out; }
+    compile.end = bstep.completed_at; compile.state = failed(bstep) ? 'failed' : 'done';
+    if (compile.state === 'failed') return out;
+    if (!pub || !pub.started_at || pub.status === 'queued') { publish.state = 'now'; publish.start = compile.end; return out; }
+    publish.start = pub.started_at;
+    if (pub.status !== 'completed') { publish.state = 'now'; return out; }
+    publish.end = pub.completed_at; publish.state = failed(pub) ? 'failed' : 'done';
+    return out;
   }
 
   // ── The demo store: this browser ──
@@ -200,6 +254,23 @@
       });
     }
     const mainOf = (meta, files) => meta.main || Object.keys(files).find(n => n.endsWith('.ino'));
+    // The demo's stages, timed to its simulated build (about 2 to 3.5 s): queued, tools, compiling, then saving.
+    const startedAt = {};
+    async function progress(id, commit) {
+      const t0 = startedAt[commit], done = !!(st.builds[id] || {})[commit];
+      const iso = ms => new Date(ms).toISOString(), edges = [0, 500, 1200, 2000];
+      const out = stagesFrom(null, []);
+      if (!t0) return { stages: out.map(x => Object.assign(x, { state: done ? 'done' : 'todo' })), usual: 3, logUrl: '' };
+      const el = Date.now() - t0;
+      out.forEach((x, i) => {
+        x.start = iso(t0 + edges[i]);
+        const end = i < 3 ? edges[i + 1] : Infinity;
+        if (done || el >= end) { x.state = 'done'; x.end = iso(t0 + Math.min(end === Infinity ? el : end, el)); }
+        else if (el >= edges[i]) x.state = 'now';
+        else { x.state = 'todo'; x.start = null; }
+      });
+      return { stages: out, usual: 3, logUrl: '' };
+    }
 
     return {
       kind: 'demo',
@@ -219,6 +290,7 @@
         const commit = hex(20);
         st.projects[id] = Object.assign({}, cleanMeta(meta), { id, files: Object.assign({}, files), updatedAt: now(), updatedBy: meta.updatedBy || 'demo visitor', lastCommit: commit });
         keep();
+        startedAt[commit] = Date.now();
         simulate(id, commit, files, mainOf(meta, files));
         return { commit };
       },
@@ -229,9 +301,11 @@
         return D.binary(files);
       },
       shasOf: async files => shas(files),
+      progress,
+      logUrl: () => '',
       reset() { st = { projects: D.projects(), builds: {} }; keep(); }
     };
   }
 
-  JIG.store = { GitHubJig, DemoJig, makeId, cleanMeta, okFile, kv };
+  JIG.store = { GitHubJig, DemoJig, makeId, cleanMeta, okFile, kv, stagesFrom, STAGES };
 })(window.JIG = window.JIG || {});

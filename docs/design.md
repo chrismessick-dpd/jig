@@ -87,7 +87,8 @@ A project's id is its name's slug and 4 random characters, as Signoff's standard
 4. **The publish job** has `permissions: contents: write` and uses only the workflow's own `GITHUB_TOKEN`.
    It commits `builds/<id>/<commit>.json` and `.bin`, and retries on a race. Its commit touches only
    `builds/`, and a push made with `GITHUB_TOKEN` starts no workflow, so builds never loop.
-5. The page checks `builds/<id>/<commit>.json` every 5 s (the contents API with the user's own sign-in, so
+5. While it waits, the page shows the run's stages from GitHub's Actions API (Actions: Read on the sign-in app) and links
+   to the run's live log. It checks `builds/<id>/<commit>.json` every 5 s (the contents API with the user's own sign-in, so
    the app needs no Actions permission), shows the elapsed time, and after 10 minutes stops and links to the
    repo's Actions page.
 

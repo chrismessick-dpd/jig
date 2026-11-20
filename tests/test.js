@@ -133,6 +133,29 @@
     eq(p.build.commit, r.commit, 'a build commit that only touched builds/ doesn\'t move the project\'s last commit'); ok(p.build.result && p.build.result.ok);
   });
 
+  // ── Build stages from GitHub's Actions API (the step names and times of the first real build, 2026-11-20) ──
+  const step = (name, status, a, b, conclusion) => ({ name, status, started_at: a, completed_at: b, conclusion: conclusion || (status === 'completed' ? 'success' : null) });
+  const T = s => '2026-11-20T03:' + s + 'Z';
+  const runOf = st => ({ id: 1, head_sha: 'beb74e08', status: st, created_at: T('20:42') });
+  const planJob = { name: 'plan', status: 'completed', conclusion: 'success', started_at: T('20:44'), completed_at: T('20:49'), steps: [] };
+  const buildJob = (status, buildStep) => ({ name: 'build', status, started_at: T('20:51'), completed_at: status === 'completed' ? T('22:28') : null,
+    conclusion: status === 'completed' ? 'success' : null,
+    steps: [step('Set up job', 'completed', T('20:52'), T('20:52')), step('Install the core', 'completed', T('20:55'), T('21:39')), buildStep] });
+  t('stages: queued, then tools, compiling, and saving, with their times', () => {
+    const S = JIG.store.stagesFrom, st = xs => xs.map(x => x.key + ':' + x.state).join(' ');
+    eq(st(S(null, [])), 'queue:now tools:todo compile:todo publish:todo', 'no run yet');
+    eq(st(S(runOf('queued'), [Object.assign({}, planJob, { status: 'in_progress', conclusion: null })])), 'queue:now tools:todo compile:todo publish:todo');
+    eq(st(S(runOf('in_progress'), [planJob, buildJob('in_progress', step('Build', 'pending'))])), 'queue:done tools:now compile:todo publish:todo');
+    const compiling = S(runOf('in_progress'), [planJob, buildJob('in_progress', step('Build', 'in_progress', T('21:40')))]);
+    eq(st(compiling), 'queue:done tools:done compile:now publish:todo');
+    eq([compiling[0].start, compiling[0].end, compiling[1].end, compiling[2].start], [T('20:42'), T('20:51'), T('21:40'), T('21:40')]);
+    const done = S(runOf('completed'), [planJob, buildJob('completed', step('Build', 'completed', T('21:40'), T('22:13'))),
+      { name: 'publish', status: 'completed', conclusion: 'success', started_at: T('22:31'), completed_at: T('22:38'), steps: [] }]);
+    eq(st(done), 'queue:done tools:done compile:done publish:done');
+    eq((Date.parse(done[2].end) - Date.parse(done[2].start)) / 1000, 33, 'compiling took 33 s');
+    eq(st(S(runOf('completed'), [planJob, buildJob('completed', step('Build', 'completed', T('21:40'), T('22:13'), 'failure'))])), 'queue:done tools:done compile:failed publish:todo');
+  });
+
   // ── The demo store ──
   t('demo store: save builds in the background, and a failed build has no .bin', async () => {
     try { localStorage.removeItem('jig.demo.v1'); } catch (e) { /* blocked */ }
