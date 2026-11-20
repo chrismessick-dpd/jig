@@ -8,7 +8,7 @@ It copies, from a clean checkout of the Arduino repo at its HEAD (--arduino, def
     from it, and board/SOURCE.json naming the commit;
   - boards.json, made from the package's flasher.json and tools/build.sh (the board's FQBN), with the core
     pinned by --core;
-and, from this repo, tools/build.py and tools/workflow/build.yml (as .github/workflows/build.yml).
+and, from this repo, tools/build.py, tools/trim_core.py, and tools/workflow/build.yml (as .github/workflows/build.yml).
 Nothing else in jig_data is touched: projects/ and builds/ never appear in the change.
 
 It refuses a checkout with uncommitted changes under the package, or older than the USB detach fix
@@ -97,6 +97,7 @@ def wanted(arduino, package, core):
                                    "examples": "board/" + fl["examples"]}}}
     out["boards.json"] = (json.dumps(boards, indent=2) + "\n").encode()
     out["tools/build.py"] = (ROOT / "tools" / "build.py").read_bytes()
+    out["tools/trim_core.py"] = (ROOT / "tools" / "trim_core.py").read_bytes()
     out[".github/workflows/build.yml"] = (ROOT / "tools" / "workflow" / "build.yml").read_bytes()
     source = {"repo": m.group(1) if m else remote, "commit": head, "package": pkg}
     return out, source

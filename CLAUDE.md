@@ -18,7 +18,14 @@ Jig is an online editor and compiler for Arduino-style firmware: the page edits 
   arduino-cli keeps the compiled core). In Actions (2026-11-20, the first build, Blink): 2 min end to end, of which
   installing the core took 44 s and compiling 33 s. A cached run (Chris's second build, 03:26
   UTC): 84 s, of which restoring the core from the cache took 32 s, installing it 2 s, and compiling 23 s. The core
-  cache barely beats a fresh install (32 s vs. 44 s); slimming what's cached is the next speed-up.
+  cache barely beats a fresh install (32 s vs. 44 s). So (2026-11-20, Chris: "try it") `tools/trim_core.py`, run by the
+  workflow after the install, cuts the cached core to these boards: other series' drivers, device headers, and
+  variants, the compiler's libraries for other CPU setups (asked of the compiler with `-print-multi-directory`), its
+  debugger and docs, and the SVD files (emptied). On Chris's laptop it took the package from 3,017 MB to 462 MB, and
+  Blink and a larger example built byte for byte the same as untrimmed from the same folders (a hard-linked copy in
+  `C:/Dovetail/scratch`, removed after; on Windows the copy must sit at a short path or gcc misses headers past 260
+  characters). The cache key now includes `boards.json`, the boards.txt files, and the trim script. The firmware does
+  depend on the build's folder paths, which explains the Actions build's 8 bytes. Not yet synced into `jig_data`.
 - **Trial build passed:** `jig_data` `50019ee7` (board package, build script, workflow; synced at Chris's OK),
   then "Blink trial" made in hosted Jig signed in (`beb74e08`), built and published by Actions (`f4d79d90`). Not
   yet flashed on a board; its `.bin` differs from the Windows build's from the vector table on (same strings).

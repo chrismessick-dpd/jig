@@ -63,11 +63,13 @@ jobs:
           print("spec=%s@%s" % (c["id"], c["version"]))
           print("index=%s" % c.get("index", ""))
           EOF
+      # The core is cached trimmed to these boards (tools/trim_core.py), so the key changes with the boards, their
+      # boards.txt, and the trim itself: a new board or a changed trim starts from a fresh install.
       - name: Cache the core
         uses: actions/cache@v4
         with:
           path: ~/.arduino15
-          key: arduino15-${{ steps.core.outputs.spec }}
+          key: arduino15-${{ steps.core.outputs.spec }}-${{ hashFiles('boards.json', 'board/hardware/*/*/boards.txt', 'tools/trim_core.py') }}
       - name: Install the core
         env:
           SPEC: ${{ steps.core.outputs.spec }}
@@ -75,6 +77,8 @@ jobs:
         run: |
           arduino-cli core update-index --additional-urls "$INDEX"
           arduino-cli core install "$SPEC" --additional-urls "$INDEX"
+      - name: Trim the core
+        run: python3 tools/trim_core.py --data . --arduino ~/.arduino15
       - name: Cache compiled files
         uses: actions/cache@v4
         with:
