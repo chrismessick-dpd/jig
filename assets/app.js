@@ -108,6 +108,7 @@
     else if (q.get('new')) {
       const want = q.get('board') || '', bs = state.index.boards;
       const id = bs[want] ? want : Object.keys(bs).find(k => bs[k].flasher === want);
+      setLink(null);   // once: a reload doesn't open the window again
       newProject(id);
     }
   }

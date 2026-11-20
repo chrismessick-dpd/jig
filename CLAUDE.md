@@ -30,7 +30,12 @@ Jig is an online editor and compiler for Arduino-style firmware: the page edits 
 - **Wider indent (2026-11-20, Chris: hard to see the structure):** every space is drawn half a character wider
   (`word-spacing` on the text box and its copy alike, so they stay aligned: checked to the pixel), so a 2-space
   indent is 3 characters wide, with faint guides on the leading spaces (`.jg-ind`). Files are unchanged.
-- Not linked from the hub. Still to do in Flasher: a *From Jig* sidebar section, and New editable project.
+- **From Flasher (2026-11-20):** Flasher's sidebar lists each Jig project's newest passing build (*From Jig*), and its
+  Working projects' boards offer **New editable project…**, opening `?new=1&board=<Flasher board id>` (Jig maps it
+  through `boards.json`'s `flasher` and clears the address after). Sign out from Jig (the hub's `sidefoot.js`) deletes
+  `jig-local` and `jig-local-demo`; EE's own list (`SUITE_DBS` in its `app.js`) still needs them, held back because
+  another session had EE's `app.js` open (2026-11-20).
+- Not linked from the hub.
 
 ## Rules
 

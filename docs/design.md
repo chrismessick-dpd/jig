@@ -180,8 +180,8 @@ Flasher reads `jig_data`; Jig never writes `flasher_data`.
    build of a board example, to time a first and a cached build on Linux.
 5. The page signed in: a real project, Save, Build, the result, and the `.bin` flashed through Flasher.
 6. Phase 2: the Flasher links. **Started 2026-11-20:** Jig's Flash hands the build over and Flasher opens
-   `?jig=` (a hand-off in this browser, else read from `jig_data`). Not built: the *From Jig* sidebar section and
-   New editable project.
+   `?jig=` (a hand-off in this browser, else read from `jig_data`). Then the *From Jig* sidebar section and New editable
+   project (2026-11-20). Not tried signed in.
 
 ## Rules
 
