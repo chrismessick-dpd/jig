@@ -16,7 +16,9 @@ Jig is an online editor and compiler for Arduino-style firmware: the page edits 
   `tools/sync_data.py` (its local half checked; never run against GitHub).
 - Measured on Chris's laptop: a cold build 55 to 78 s, a cached one 31 to 39 s (one fixed sketch folder, so
   arduino-cli keeps the compiled core). In Actions (2026-11-20, the first build, Blink): 2 min end to end, of which
-  installing the core took 44 s and compiling 33 s. A cached run is still to be timed.
+  installing the core took 44 s and compiling 33 s. A cached run (Chris's second build, 03:26
+  UTC): 84 s, of which restoring the core from the cache took 32 s, installing it 2 s, and compiling 23 s. The core
+  cache barely beats a fresh install (32 s vs. 44 s); slimming what's cached is the next speed-up.
 - **Trial build passed:** `jig_data` `50019ee7` (board package, build script, workflow; synced at Chris's OK),
   then "Blink trial" made in hosted Jig signed in (`beb74e08`), built and published by Actions (`f4d79d90`). Not
   yet flashed on a board; its `.bin` differs from the Windows build's from the vector table on (same strings).
@@ -40,9 +42,8 @@ Jig is an online editor and compiler for Arduino-style firmware: the page edits 
   total, from GitHub's Actions API (`store.progress`, `JIG.store.stagesFrom`, matched to the workflow's job and step
   names: rename a step in `tools/workflow/build.yml` and the mapping goes with it), and a **Watch the log on GitHub ↗**
   link to the run (GitHub streams it live). The steps need **Actions: Read** on the sign-in GitHub App; without it the
-  API answers 403 and only the link shows. Chris added the permission (2026-11-20); a check right after still got 403
-  ("Resource not accessible by integration"), so the installation's approval of the new permission, or the other app
-  (production and dev are separate), was still pending. The demo simulates the stages.
+  API answers 403 and only the link shows. Chris added the permission and accepted it on the installation (2026-11-20);
+  checked from the hosted page signed in: runs and jobs read (200). The demo simulates the stages.
 - Not linked from the hub.
 
 ## Rules
