@@ -25,7 +25,9 @@ Jig is an online editor and compiler for Arduino-style firmware: the page edits 
   Blink and a larger example built byte for byte the same as untrimmed from the same folders (a hard-linked copy in
   `C:/Dovetail/scratch`, removed after; on Windows the copy must sit at a short path or gcc misses headers past 260
   characters). The cache key now includes `boards.json`, the boards.txt files, and the trim script. The firmware does
-  depend on the build's folder paths, which explains the Actions build's 8 bytes. Not yet synced into `jig_data`.
+  depend on the build's folder paths, which explains the Actions build's 8 bytes. Synced at Chris's OK (`jig_data` `c5c84fe0`: the
+  workflow and `tools/trim_core.py`, read back). The next build installs fresh and saves the trimmed cache; the one
+  after shows the gain (not yet measured).
 - **Trial build passed:** `jig_data` `50019ee7` (board package, build script, workflow; synced at Chris's OK),
   then "Blink trial" made in hosted Jig signed in (`beb74e08`), built and published by Actions (`f4d79d90`). Not
   yet flashed on a board; its `.bin` differs from the Windows build's from the vector table on (same strings).
