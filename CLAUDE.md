@@ -20,8 +20,17 @@ Jig is an online editor and compiler for Arduino-style firmware: the page edits 
 - **Trial build passed:** `jig_data` `50019ee7` (board package, build script, workflow; synced at Chris's OK),
   then "Blink trial" made in hosted Jig signed in (`beb74e08`), built and published by Actions (`f4d79d90`). Not
   yet flashed on a board; its `.bin` differs from the Windows build's from the vector table on (same strings).
-- Not linked from the hub or any tool. Flasher's side (a *From Jig* section, `?jig=`, New editable project) is
-  phase 2.
+- **Flash into Flasher (2026-11-20, Chris: "start integrating to pass over to flasher"):** Jig's **Flash** (a passing
+  build, no unsaved edits) checks the `.bin` against its record's SHA-256, leaves it in IndexedDB `dovetail-handoff`
+  (the engine's `Signoff.handoff`, `-demo` in the demo; id `jig:<project>/<commit>`, with the Flasher board from
+  `boards.json`'s `flasher`), and opens `../flasher/?jig=<project>/<commit>`. Flasher (`flasher/assets/jig.js`) takes
+  it, or reads `jig_data` when it isn't there, checks the SHA-256 again, and opens it as a file for that board with a
+  *From Jig* note. The demo board maps to Flasher's `tstat-main`, and the demo `.bin` has a real vector table.
+  Tried in both demos: built, Flash, the simulated board written, read back, and running. Not tried signed in.
+- **Wider indent (2026-11-20, Chris: hard to see the structure):** every space is drawn half a character wider
+  (`word-spacing` on the text box and its copy alike, so they stay aligned: checked to the pixel), so a 2-space
+  indent is 3 characters wide, with faint guides on the leading spaces (`.jg-ind`). Files are unchanged.
+- Not linked from the hub. Still to do in Flasher: a *From Jig* sidebar section, and New editable project.
 
 ## Rules
 

@@ -47,7 +47,12 @@
 .jg-n.is-warn { color: var(--on-warn); font-weight: 600; background: var(--warn-soft); background-image: var(--warn-hatch); }
 .jg-n-mark { font-size: 10px; }
 .jg-code { position: relative; flex: 1; min-width: 0; overflow: hidden; }
-.jg-hl, .jg-ta { margin: 0; padding: 12px 16px 40px; font: inherit; tab-size: 2; white-space: pre; letter-spacing: 0; }
+/* Sketches indent by 2 spaces; every space is drawn half a character wider (in the text box and its copy alike,
+   so they stay aligned), which makes an indent 3 characters wide without changing the file. A tab is two such
+   spaces. Indent guides mark each level, drawn on the leading spaces (editor.js, .jg-ind). */
+.jg-ed { --jg-ws: 0.5ch; }
+.jg-hl, .jg-ta { margin: 0; padding: 12px 16px 40px; font: inherit; tab-size: 2; white-space: pre; letter-spacing: 0; word-spacing: var(--jg-ws); }
+.jg-ind { background-image: linear-gradient(to right, var(--hair-2) 1px, transparent 1px); background-size: calc(2 * (1ch + var(--jg-ws))) 100%; background-repeat: repeat-x; }
 .jg-hl { position: absolute; top: 0; left: 0; min-width: 100%; pointer-events: none; color: var(--text); }
 .jg-l { height: 20px; margin: 0 -16px; padding: 0 16px; }
 .jg-l.is-err { background: var(--issue-soft); }

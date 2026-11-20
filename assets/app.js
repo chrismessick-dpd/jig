@@ -221,19 +221,45 @@
     ed.marks(r ? (r.messages || []).filter(m => m.file === state.cur.file && m.line) : []);
   }
 
+  // The passing build's bytes, checked against its record's SHA-256.
+  async function buildBytes() {
+    const c = state.cur, r = c && c.build && c.build.result;
+    if (!r || !r.ok) throw new Error('No passing build to use');
+    const bytes = await state.store.binary(c.id, c.build.commit);
+    const d = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+    const hex = Array.from(d, b => b.toString(16).padStart(2, '0')).join('');
+    if (r.sha256 && hex !== r.sha256) throw new Error('The firmware file doesn\'t match its build record');
+    return { bytes, sha256: hex };
+  }
+  const binName = c => (c.meta.name || c.id).replace(/[^A-Za-z0-9_.-]+/g, '_').slice(0, 60) + '-' + c.build.commit.slice(0, 8) + '.bin';
+
+  // Flash: hand the build to Flasher in this browser (IndexedDB dovetail-handoff, as Signoff EE hands runs to
+  // Fabcheck) and open it there on ?jig=<project>/<commit>. Flasher checks the SHA-256 again, and reads jig_data
+  // itself when the hand-off isn't there (a link opened later).
+  async function flash() {
+    const c = state.cur, r = c && c.build && c.build.result;
+    if (!r || !r.ok || c.dirty || state.flashing) return;
+    const board = state.index && state.index.boards[c.meta.board];
+    state.flashing = true; renderToolbar();
+    try {
+      const b = await buildBytes();
+      await window.Signoff.handoff.put({ id: 'jig:' + c.id + '/' + c.build.commit, tool: 'jig', name: binName(c), bytes: b.bytes, sha256: b.sha256,
+        board: (board && board.flasher) || '', projectName: c.meta.name || c.id, commit: c.build.commit, at: new Date().toISOString() }, DEMO);
+      location.href = '../flasher/index.html?' + (DEMO ? 'demo&' : '') + 'jig=' + encodeURIComponent(c.id) + '/' + c.build.commit;
+    } catch (e) {
+      state.flashing = false; renderToolbar();
+      toast('Couldn\'t hand the build to Flasher: ' + (e.message || e), 'error');
+    }
+  }
+
   async function download() {
     const c = state.cur, r = c && c.build && c.build.result;
     if (!r || !r.ok) return;
     try {
-      const bytes = await state.store.binary(c.id, c.build.commit);
-      if (r.sha256 && crypto.subtle) {
-        const d = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
-        const hex = Array.from(d, b => b.toString(16).padStart(2, '0')).join('');
-        if (hex !== r.sha256) { toast('The firmware file doesn\'t match its build record; not downloaded', 'error'); return; }
-      }
+      const { bytes } = await buildBytes();
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
-      a.download = (c.meta.name || c.id).replace(/[^A-Za-z0-9_.-]+/g, '_') + '-' + c.build.commit.slice(0, 8) + '.bin';
+      a.download = binName(c);
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     } catch (e) { toast(e.message || String(e), 'error'); }
@@ -264,7 +290,7 @@
     const r = c.build && c.build.result;
     a.innerHTML =
       '<button class="btn" data-act="download"' + (r && r.ok && !c.dirty ? '' : ' disabled') + ' title="' + (r && r.ok ? (c.dirty ? 'Build your edits first' : 'Download this build\'s .bin') : 'No passing build yet') + '">' + ICON.down + ' .bin</button>' +
-      '<a class="btn" href="../flasher/index.html' + (DEMO ? '?demo' : '') + '" title="Open Flasher to flash a downloaded .bin from its Serial bootloader tab">' + ICON.bolt + ' Flasher</a>' +
+      '<button class="btn" data-act="flash"' + (r && r.ok && !c.dirty && !state.flashing ? '' : ' disabled') + ' title="' + (r && r.ok ? (c.dirty ? 'Build your edits first' : 'Open this build in Flasher, ready to flash its board') : 'No passing build yet') + '">' + ICON.bolt + (state.flashing ? ' Opening Flasher…' : ' Flash') + '</button>' +
       '<button class="btn btn-primary" data-act="save"' + (c.saving ? ' disabled' : '') + ' title="Save to ' + esc(state.store.repo) + ' and build (Ctrl+S)">' + (c.saving ? 'Saving…' : 'Save and build') + '</button>';
   }
 
@@ -337,7 +363,7 @@
     if (!state.index) return '<div class="page"><p class="jg-muted">Loading projects…</p></div>';
     const n = state.index.projects.length;
     return '<div class="page jg-home"><div class="eyebrow">' + (DEMO ? 'Demo' : esc(DATA.repo)) + '</div><h1 class="page-title">Jig</h1>' +
-      '<p class="jg-lede">Pick a project on the left, or start one. Saving a sketch builds it' + (DEMO ? ' (simulated here)' : ' with GitHub Actions in ' + esc(DATA.repo)) + '; a passing build\'s .bin flashes from Flasher\'s Serial bootloader tab.</p>' +
+      '<p class="jg-lede">Pick a project on the left, or start one. Saving a sketch builds it' + (DEMO ? ' (simulated here)' : ' with GitHub Actions in ' + esc(DATA.repo)) + '; Flash opens a passing build in Flasher, ready for its board.</p>' +
       '<div class="jg-btns"><button class="btn btn-primary" data-act="new">' + ICON.plus + ' New project</button>' + (DEMO ? '<button class="btn" data-act="reset">Reset the demo</button>' : '') + '</div>' +
       '<p class="jg-muted">' + n + ' project' + (n === 1 ? '' : 's') + ' · ' + Object.keys(state.index.boards).length + ' board' + (Object.keys(state.index.boards).length === 1 ? '' : 's') + '</p></div>';
   }
@@ -461,6 +487,7 @@
     else if (a === 'new') { if (!state.store) { if (window.SignoffFoot) window.SignoffFoot.settings(); } else newProject(state.cur && state.cur.meta.board); }
     else if (a === 'save') save();
     else if (a === 'download') download();
+    else if (a === 'flash') flash();
     else if (a === 'addfile') addFile();
     else if (a === 'signin') { if (window.SignoffFoot) window.SignoffFoot.settings(); }
     else if (a === 'rewait' && state.wait) wait(state.wait.id, state.wait.commit, Date.now());

@@ -140,13 +140,13 @@ GitHub from the hub's `auth.js` and `sidefoot.js`, the suite's theme).
   numbers, C++ highlighting, Tab indents, and marks on the lines the last build flagged. The pages allow only
   their own scripts, so CodeMirror would have to be bundled and copied in; it can replace the editor later
   without changing anything else.
-- **Toolbar:** **Save and build** (Ctrl+S: saves, which starts the build, then waits for the result), **.bin**
-  (downloads a passing build, checked against its `sha256`), and a **Flasher** link. Unsaved edits
+- **Toolbar:** **.bin** (downloads a passing build, checked against its `sha256`), **Flash**, and **Save and build**
+  (Ctrl+S: saves, which starts the build, then waits for the result). Unsaved edits
   stay in the browser (IndexedDB) until saved, so a reload loses nothing.
 - **Build panel** under the editor: waiting, then passed (flash and RAM use against the board's) or failed
   (each message, a click goes to its line), and the full log folded.
-- **Flashing:** for now, download the `.bin` and flash it from Flasher's Serial bootloader tab as a file. Phase 2
-  makes it a **Flash** button that opens Flasher in the same tab on that build (see *Flasher*).
+- **Flash** hands the passing build to Flasher in this browser (IndexedDB `dovetail-handoff`, id
+  `jig:<project>/<commit>`) and opens it there in the same tab (see *Flasher*). **.bin** downloads it.
 - **Who:** anyone who can open `jig_data`. For now that's FTEs only (Chris adds them as collaborators).
   Sharing a project with a client or contractor comes later, if ever.
 - **Demo** (`?demo`): the Smart Thermostat's Main PCBA (made up), two sketches kept in the browser, and a
@@ -179,7 +179,9 @@ Flasher reads `jig_data`; Jig never writes `flasher_data`.
    first time, and later changes to it go the same way. One trial
    build of a board example, to time a first and a cached build on Linux.
 5. The page signed in: a real project, Save, Build, the result, and the `.bin` flashed through Flasher.
-6. Phase 2: the Flasher links.
+6. Phase 2: the Flasher links. **Started 2026-11-20:** Jig's Flash hands the build over and Flasher opens
+   `?jig=` (a hand-off in this browser, else read from `jig_data`). Not built: the *From Jig* sidebar section and
+   New editable project.
 
 ## Rules
 

@@ -7,8 +7,9 @@
 (function (JIG) {
   'use strict';
   const boards = {
-    'thermostat-main': { name: 'Main PCBA (Smart Thermostat)', fqbn: 'acme:stm32:thermostat_main', flasher: 'thermostat-main',
-      flashMax: 131072, ramMax: 36864 }
+    // flasher: the board's id in Flasher's demo (its Smart Thermostat Main PCBA), so Flash opens it there.
+    'thermostat-main': { name: 'Main PCBA (Smart Thermostat)', fqbn: 'acme:stm32:thermostat_main', flasher: 'tstat-main',
+      flashMax: 131072, ramMax: 32768 }
   };
 
   const BLINK = [
@@ -139,6 +140,11 @@
     for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
     const n = 18432 + text.length * 12 - (text.length * 12) % 4, out = new Uint8Array(n);
     for (let i = 0; i < n; i++) { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; h >>>= 0; out[i] = h & 0xff; }
+    // A Cortex-M vector table, so Flasher's checks take it: the stack at the top of the board's 32 KB of RAM, and an
+    // odd (Thumb) reset vector inside the image.
+    const dv = new DataView(out.buffer);
+    dv.setUint32(0, 0x20008000, true);
+    dv.setUint32(4, 0x08000000 + 0x1c1, true);
     return out;
   }
 

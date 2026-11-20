@@ -76,7 +76,8 @@
         if (p) out[out.length - 1] += cls ? '<span class="t-' + cls + '">' + esc(p) + '</span>' : esc(p);
       });
     }
-    return out;
+    // A line's leading spaces carry the indent guides (styles.css, .jg-ind); the text itself is unchanged.
+    return out.map(h => h.replace(/^( +)/, '<span class="jg-ind">$1</span>'));
   }
   JIG.cpp = { tokens, lines };
 
