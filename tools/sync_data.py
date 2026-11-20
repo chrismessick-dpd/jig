@@ -150,7 +150,12 @@ def main():
         return
     for kind, path, data, _ in changes:
         print("  %-6s %s%s" % (kind, path, "" if data is None else " (%d bytes)" % len(data)))
-    code = hashlib.sha256((head + "".join("%s %s %s\n" % (k, p, s) for k, p, _, s in changes)).encode()).hexdigest()[:6]
+    # The code covers what the dry run showed, not the clock: SOURCE.json counts without its copiedAt stamp.
+    def code_sha(p, s):
+        if p != "board/SOURCE.json" or s is None:
+            return s
+        return blob_sha((json.dumps({k: v for k, v in source.items() if k != "copiedAt"}, indent=2) + "\n").encode())
+    code = hashlib.sha256((head + "".join("%s %s %s\n" % (k, p, code_sha(p, s)) for k, p, _, s in changes)).encode()).hexdigest()[:6]
     if a.confirm != code:
         print("\nDry run. To commit exactly this on %s, run again with --confirm %s" % (head[:8], code))
         return

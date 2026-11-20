@@ -171,7 +171,9 @@ Flasher reads `jig_data`; Jig never writes `flasher_data`.
    workflow file; `tools/sync_data.py` (its local half checked; never run against GitHub, since no repo exists yet); the page and its demo.
 3. **Done 2026-11-19:** `jig` (public) and `jig_data` (private) created at Chris's OK; Actions is on in `jig_data`.
    Pages on `jig` comes after the first push (Chris).
-4. The board package copied in (dry run, Chris's OK), `boards.json`, and the workflow committed. GitHub refuses a
+4. **Done 2026-11-20:** the board package, `boards.json`, the build script, and the workflow committed (`jig_data`
+   `50019ee7`), and a Blink trial built in Actions in 2 min cold (core install 44 s, compile 33 s). As planned:
+   the board package copied in (dry run, Chris's OK), `boards.json`, and the workflow committed. GitHub refuses a
    push that creates or changes a workflow file unless the token has the `workflow` scope (classic) or
    Workflows: write (fine-grained); if Chris's token hasn't, he commits `.github/workflows/build.yml` himself the
    first time, and later changes to it go the same way. One trial

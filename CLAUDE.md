@@ -9,14 +9,17 @@ Jig is an online editor and compiler for Arduino-style firmware: the page edits 
 - **Proposed and built locally.** Chris chose GitHub Actions over a compile server, a separate tool over a tab in
   Flasher (so it's developed on its own and stays out of the mainstream), and the name Jig. `docs/design.md` is
   waiting for his OK.
-- **Repos created 2026-11-19 at Chris's OK:** `chrismessick-dpd/jig` (public, empty; the local folder isn't a git
-  repo yet) and `chrismessick-dpd/jig_data` (private, `main` with GitHub's README; Actions already on). Pages on
-  `jig` waits for the first push, and Chris turns it on.
+- **Repos created 2026-11-19 at Chris's OK:** `chrismessick-dpd/jig` (public; first push `73e3035`, at Chris's OK) and `chrismessick-dpd/jig_data` (private, `main` with GitHub's README; Actions already on). Pages on
+  `jig` is Chris's to turn on.
 - Built: the page and its demo, `tools/build.py` (run locally against the real board package: two examples
   passed with byte-for-byte the IDE's `.bin`, and a broken sketch failed with its line), the workflow, and
   `tools/sync_data.py` (its local half checked; never run against GitHub).
 - Measured on Chris's laptop: a cold build 55 to 78 s, a cached one 31 to 39 s (one fixed sketch folder, so
-  arduino-cli keeps the compiled core). Linux in Actions is untried.
+  arduino-cli keeps the compiled core). In Actions (2026-11-20, the first build, Blink): 2 min end to end, of which
+  installing the core took 44 s and compiling 33 s. A cached run is still to be timed.
+- **Trial build passed:** `jig_data` `50019ee7` (board package, build script, workflow; synced at Chris's OK),
+  then "Blink trial" made in hosted Jig signed in (`beb74e08`), built and published by Actions (`f4d79d90`). Not
+  yet flashed on a board; its `.bin` differs from the Windows build's from the vector table on (same strings).
 - Not linked from the hub or any tool. Flasher's side (a *From Jig* section, `?jig=`, New editable project) is
   phase 2.
 
