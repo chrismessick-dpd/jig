@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Scripts only from this site. Sketches and builds live in the private jig_data repo, read and written through
+     api.github.com with the suite's GitHub sign-in; builds run in that repo's GitHub Actions (docs/design.md). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src 'self' https://api.github.com https://signoff-auth.misty-dawn-b371.workers.dev https://signoff-auth-dev.misty-dawn-b371.workers.dev; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<title>Jig · Firmware editor</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23004952'/%3E%3Cpath d='M9 10l-3 6 3 6M23 10l3 6-3 6M18 9l-4 14' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<!-- Home-screen app: the hub's manifest, scoped to the whole site, so every tool opens inside one app. -->
+<link rel="manifest" href="../signoff/manifest.webmanifest">
+<link rel="apple-touch-icon" href="../signoff/assets/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Signoff">
+<link rel="stylesheet" href="assets/suite.css">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<div id="demo-banner" class="demo-banner" hidden></div>
+<div class="app" id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand" data-act="home" style="cursor:pointer" title="Home">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 20 20" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l-3 4 3 4M14 6l3 4-3 4M11.5 4.5l-3 11"/></svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-name">Jig</div>
+        <div class="brand-sub">Firmware editor</div>
+      </div>
+      <button class="icon-btn side-collapse" data-act="nav" title="Hide sidebar ( [ )" aria-label="Hide sidebar">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="2.5" y="3.5" width="15" height="13" rx="2.5"/><path d="M7.5 3.5v13"/><path d="M13.5 8l-2 2 2 2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="side-head">
+      <span class="side-label">Projects</span>
+      <button class="icon-btn" data-act="new" title="New project" aria-label="New project">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>
+      </button>
+    </div>
+    <nav class="side-list" id="project-list" aria-label="Projects"></nav>
+    <div class="side-tools" id="side-tools">
+      <div class="side-head"><span class="side-label">Dovetail Signoff</span></div>
+      <a class="side-link" href="../flasher/index.html" data-demo-href title="Open Flasher, firmware flasher">
+        <span class="tool-mark tool-mark-text">FL</span>
+        <span>Flasher<small>Firmware flasher</small></span>
+      </a>
+      <a class="side-link" href="../fw_design_review/index.html" data-signed data-demo-href hidden title="Open Signoff FW, firmware design review">
+        <span class="tool-mark tool-mark-text">FW</span>
+        <span>Signoff FW<small>Firmware design review</small></span>
+      </a>
+      <a class="side-link" href="../signoff/index.html" data-demo-href title="Back to Dovetail Signoff, all tools">
+        <span class="tool-mark"><svg viewBox="0 0 18 18" fill="#fff"><rect x="2" y="2" width="6" height="6" rx="1.5"/><rect x="10" y="2" width="6" height="6" rx="1.5"/><rect x="2" y="10" width="6" height="6" rx="1.5"/><rect x="10" y="10" width="6" height="6" rx="1.5"/></svg></span>
+        <span>All tools<small>Dovetail Signoff home</small></span>
+      </a>
+    </div>
+    <div class="side-version jg-muted jg-version" id="version"></div>
+    <div class="side-foot">
+      <button class="sync-pill" id="sync-pill" title="GitHub sign-in">
+        <span class="sync-dot"></span>
+        <span class="sync-text"><span class="sync-title">Not signed in</span><span class="sync-sub">Click to sign in</span></span>
+      </button>
+      <button class="icon-btn" data-act="theme" id="theme-btn" title="Dark mode" aria-label="Toggle dark mode"></button>
+      <button class="icon-btn" data-foot-settings title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </aside>
+  <main class="main" id="main">
+    <header class="toolbar" id="toolbar">
+      <button class="icon-btn menu-toggle" data-act="nav" title="Show sidebar ( [ )" aria-label="Show sidebar">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h14M3 10h14M3 14h14"/></svg>
+      </button>
+      <div class="toolbar-title" id="toolbar-title"></div>
+      <div class="toolbar-actions" id="toolbar-actions"></div>
+    </header>
+    <div id="view"></div>
+  </main>
+</div>
+<div class="toasts" id="toasts"></div>
+<script src="assets/version.js"></script>
+<script src="assets/vendor/model.js"></script>
+<script src="assets/vendor/github.js"></script>
+<script src="assets/editor.js"></script>
+<script src="assets/demo.js"></script>
+<script src="assets/store.js"></script>
+<!-- The suite's sign-in and sidebar foot, from the hub. -->
+<script src="../signoff/assets/auth.js"></script>
+<script src="../signoff/assets/people.js"></script>
+<script src="../signoff/assets/invites.js"></script>
+<script src="../signoff/assets/sidefoot.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

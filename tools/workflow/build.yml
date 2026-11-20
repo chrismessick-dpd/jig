@@ -1,0 +1,145 @@
+# Jig's build (docs/design.md, *Building*). This is the template: it runs in the private jig_data repo as
+# .github/workflows/build.yml, beside a copy of tools/build.py, and builds every project a push changed.
+#
+# - plan:    which projects the push changed.
+# - build:   compiles them. Read-only, no secrets, credentials not kept: a sketch can #include any file on
+#            the runner, so nothing worth taking is there.
+# - publish: commits builds/<id>/<commit>.json (always) and .bin (when it passed) with the workflow's own
+#            GITHUB_TOKEN. It runs no project code. A push made with GITHUB_TOKEN starts no workflow, and it
+#            only touches builds/, so builds never loop.
+name: Build
+
+on:
+  push:
+    branches: [main]
+    paths: ['projects/**']
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      projects: ${{ steps.changed.outputs.projects }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: changed
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            files=$(git ls-tree -r --name-only "$AFTER" -- projects/)
+          else
+            files=$(git diff --name-only "$BEFORE" "$AFTER" -- projects/)
+          fi
+          ids=$(printf '%s\n' "$files" | sed -n 's#^projects/\([a-z0-9][a-z0-9-]*\)/.*#\1#p' | sort -u | while read -r id; do
+            [ -f "projects/$id/project.json" ] && echo "$id"; done | tr '\n' ' ')
+          echo "projects=$ids" >> "$GITHUB_OUTPUT"
+          echo "Projects to build: ${ids:-none}"
+
+  build:
+    needs: plan
+    if: needs.plan.outputs.projects != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: arduino/setup-arduino-cli@v2
+        with:
+          version: 1.2.0
+      - name: Read the core from boards.json
+        id: core
+        run: |
+          python3 - <<'EOF' >> "$GITHUB_OUTPUT"
+          import json
+          c = json.load(open("boards.json", encoding="utf-8"))["core"]
+          print("spec=%s@%s" % (c["id"], c["version"]))
+          print("index=%s" % c.get("index", ""))
+          EOF
+      - name: Cache the core
+        uses: actions/cache@v4
+        with:
+          path: ~/.arduino15
+          key: arduino15-${{ steps.core.outputs.spec }}
+      - name: Install the core
+        env:
+          SPEC: ${{ steps.core.outputs.spec }}
+          INDEX: ${{ steps.core.outputs.index }}
+        run: |
+          arduino-cli core update-index --additional-urls "$INDEX"
+          arduino-cli core install "$SPEC" --additional-urls "$INDEX"
+      - name: Cache compiled files
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/jig-build
+          key: jig-build-${{ steps.core.outputs.spec }}-${{ hashFiles('board/**', 'boards.json') }}-${{ github.run_id }}
+          restore-keys: jig-build-${{ steps.core.outputs.spec }}-${{ hashFiles('board/**', 'boards.json') }}-
+      - name: Build
+        env:
+          PROJECTS: ${{ needs.plan.outputs.projects }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          for id in $PROJECTS; do
+            python3 tools/build.py --data . --project "$id" --commit "$COMMIT" --out _builds --build-cache ~/.cache/jig-build
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: builds
+          path: _builds/
+          retention-days: 3
+
+  publish:
+    needs: [plan, build]
+    if: always() && needs.plan.outputs.projects != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: builds
+          path: _builds
+      - name: Commit the results
+        env:
+          PROJECTS: ${{ needs.plan.outputs.projects }}
+          COMMIT: ${{ github.sha }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          mkdir -p _builds
+          # A project the build job never got to (it crashed or was cancelled) still gets a result.
+          for id in $PROJECTS; do
+            if [ ! -f "_builds/$id/$COMMIT.json" ]; then
+              mkdir -p "_builds/$id"
+              python3 - "$id" > "_builds/$id/$COMMIT.json" <<'EOF'
+          import json, os, sys
+          print(json.dumps({"format": "jig.build/1", "project": sys.argv[1], "commit": os.environ["COMMIT"], "ok": False,
+              "messages": [{"file": None, "line": None, "col": None, "severity": "error",
+                            "text": "The build job didn't finish (%s). See %s" % (os.environ["BUILD_RESULT"], os.environ["RUN_URL"])}],
+              "log": ""}, indent=2))
+          EOF
+            fi
+          done
+          git config user.name "jig-build"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for try in 1 2 3 4 5; do
+            git fetch origin main && git reset --hard origin/main
+            mkdir -p builds && cp -r _builds/. builds/
+            git add builds
+            git diff --cached --quiet && { echo "Nothing to commit"; exit 0; }
+            git commit -m "Jig: build ${COMMIT:0:8} ($PROJECTS)"
+            git push origin HEAD:main && exit 0
+            sleep $((try * 3))
+          done
+          echo "Couldn't push the results" >&2
+          exit 1

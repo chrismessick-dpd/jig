@@ -1,0 +1,115 @@
+/* Jig's own styles, over the suite's (assets/suite.css). */
+.jg-muted { color: var(--text-3); font-size: 12.5px; }
+.jg-version { font-size: 11px; padding: 2px 22px 6px; }
+.jg-err { color: var(--issue); }
+.jg-toast-error { background: var(--issue); }
+.jg-lede { color: var(--text-2); font-size: 15.5px; line-height: 1.5; max-width: 680px; margin: 4px 0 22px; }
+.jg-btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 18px; }
+.jg-btns .btn svg, .toolbar-actions .btn svg { width: 14px; height: 14px; }
+.jg-link { border: none; background: none; padding: 0; color: var(--accent); font: inherit; cursor: pointer; }
+.jg-link:hover { text-decoration: underline; }
+.jg-ico { width: 18px; height: 18px; flex: none; color: var(--text-3); display: grid; place-items: center; }
+.jg-ico svg { width: 17px; height: 17px; }
+.proj.active .jg-ico { color: #fff; }
+.jg-input { width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; padding: 8px 11px; border-radius: 9px; border: 1px solid var(--hair-2); background: var(--bg); color: var(--text); }
+.jg-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+
+/* The main column: toolbar on top, the view filling the rest, so the editor gets the whole height. */
+#main { display: flex; flex-direction: column; overflow: hidden; }
+#view { flex: 1; min-height: 0; overflow: auto; }
+#toolbar-title { display: flex; align-items: center; gap: 10px; opacity: 1; max-width: none; flex: 1; min-width: 0; }
+.jg-title { font: 600 15px var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.jg-board-chip { flex: none; }
+.jg-unsaved { font-size: 12px; font-weight: 600; color: var(--on-warn); background: var(--warn-soft); background-image: var(--warn-hatch); padding: 2px 9px; border-radius: 980px; flex: none; }
+.toolbar-actions { display: flex; gap: 8px; align-items: center; flex: none; }
+.toolbar-actions .btn[disabled] { opacity: 0.45; cursor: default; }
+.toolbar-actions a.btn { text-decoration: none; color: var(--text); }
+
+/* ── The work area: file tabs, editor, build panel ── */
+.jg-work { display: flex; flex-direction: column; height: 100%; min-height: 360px; }
+.jg-tabs { display: flex; gap: 2px; padding: 8px 16px 0; border-bottom: 1px solid var(--hair); flex: none; overflow-x: auto; overflow-y: hidden; }
+.jg-tab { display: inline-flex; align-items: center; gap: 7px; border: 1px solid transparent; border-bottom: none; background: none; color: var(--text-2);
+  font: 500 13px var(--mono); padding: 7px 12px 8px; border-radius: 8px 8px 0 0; cursor: pointer; white-space: nowrap; margin-bottom: -1px; }
+.jg-tab:hover { color: var(--text); background: var(--hair); }
+.jg-tab.on { background: var(--bg); border-color: var(--hair); color: var(--text); }
+.jg-tab-x { font: 15px/1 var(--sans); color: var(--text-3); padding: 0 2px; border-radius: 4px; }
+.jg-tab-x:hover { color: var(--issue); background: var(--issue-soft); }
+.jg-tab-err { font: 600 11px var(--sans); color: var(--issue); background: var(--issue-soft); background-image: var(--issue-hatch); padding: 1px 6px; border-radius: 980px; }
+.jg-tab-add svg { width: 13px; height: 13px; }
+.jg-edwrap { flex: 1; min-height: 160px; }
+
+/* The editor (assets/editor.js): a text box over its highlighted copy, both in the same font and padding. */
+.jg-ed { display: flex; height: 100%; background: var(--bg); font: 13.5px/20px var(--mono); }
+.jg-gutter { flex: none; overflow: hidden; background: var(--bg-sunk); border-right: 1px solid var(--hair); color: var(--text-3); user-select: none; min-width: 52px; }
+.jg-gutter-in { padding: 12px 0 40px; }
+.jg-n { padding: 0 10px 0 6px; text-align: right; height: 20px; font-variant-numeric: tabular-nums; display: flex; justify-content: flex-end; align-items: center; gap: 4px; }
+.jg-n.is-err { color: var(--issue); font-weight: 600; background: var(--issue-soft); background-image: var(--issue-hatch); }
+.jg-n.is-warn { color: var(--on-warn); font-weight: 600; background: var(--warn-soft); background-image: var(--warn-hatch); }
+.jg-n-mark { font-size: 10px; }
+.jg-code { position: relative; flex: 1; min-width: 0; overflow: hidden; }
+.jg-hl, .jg-ta { margin: 0; padding: 12px 16px 40px; font: inherit; tab-size: 2; white-space: pre; letter-spacing: 0; }
+.jg-hl { position: absolute; top: 0; left: 0; min-width: 100%; pointer-events: none; color: var(--text); }
+.jg-l { height: 20px; margin: 0 -16px; padding: 0 16px; }
+.jg-l.is-err { background: var(--issue-soft); }
+.jg-l.is-warn { background: var(--warn-soft); }
+.jg-ta { position: absolute; inset: 0; width: 100%; height: 100%; box-sizing: border-box; border: 0; outline: none; resize: none; overflow: auto;
+  background: transparent; color: transparent; caret-color: var(--text); -webkit-text-fill-color: transparent; }
+.jg-ta::selection { background: color-mix(in srgb, var(--accent) 28%, transparent); -webkit-text-fill-color: transparent; }
+.t-com { color: var(--text-3); font-style: italic; }
+.t-str { color: #a3480b; }
+.t-num { color: #0b6e4f; }
+.t-kw { color: #8a2f9a; font-weight: 600; }
+.t-type { color: #1f5fae; }
+.t-pp { color: #8a5a00; }
+.t-ard { color: #00727f; font-weight: 600; }
+.t-fn { color: #3a3f8f; }
+:root[data-theme="dark"] .t-str { color: #f0a66b; }
+:root[data-theme="dark"] .t-num { color: #7fd6a8; }
+:root[data-theme="dark"] .t-kw { color: #d69ae6; }
+:root[data-theme="dark"] .t-type { color: #8bb8f2; }
+:root[data-theme="dark"] .t-pp { color: #e2c06d; }
+:root[data-theme="dark"] .t-ard { color: #6fd3dd; }
+:root[data-theme="dark"] .t-fn { color: #b4b9f5; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .t-str { color: #f0a66b; }
+  :root:not([data-theme="light"]) .t-num { color: #7fd6a8; }
+  :root:not([data-theme="light"]) .t-kw { color: #d69ae6; }
+  :root:not([data-theme="light"]) .t-type { color: #8bb8f2; }
+  :root:not([data-theme="light"]) .t-pp { color: #e2c06d; }
+  :root:not([data-theme="light"]) .t-ard { color: #6fd3dd; }
+  :root:not([data-theme="light"]) .t-fn { color: #b4b9f5; }
+}
+
+/* ── The build panel ── */
+.jg-build { flex: none; max-height: 40%; overflow: auto; border-top: 1px solid var(--hair); background: var(--bg-elev); padding: 10px 18px 12px; font-size: 13px; }
+.jg-bhead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 26px; }
+.jg-bnote { margin: 6px 0 0; color: var(--text-2); font-size: 12.5px; line-height: 1.45; }
+.jg-state { font-weight: 600; display: inline-flex; align-items: center; gap: 7px; padding: 2px 10px; border-radius: 980px; }
+.jg-state-ok { color: var(--pass); background: var(--pass-soft); }
+.jg-state-err { color: var(--issue); background: var(--issue-soft); background-image: var(--issue-hatch); }
+.jg-state-warn { color: var(--on-warn); background: var(--warn-soft); background-image: var(--warn-hatch); }
+.jg-state-busy { color: var(--accent); background: var(--accent-soft); }
+.jg-spin { width: 11px; height: 11px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: jg-spin 0.8s linear infinite; }
+@keyframes jg-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .jg-spin { animation: none; border-right-color: currentColor; opacity: 0.6; } }
+.jg-uses { display: grid; gap: 5px; margin: 9px 0 2px; max-width: 560px; }
+.jg-use { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; align-items: center; font-size: 12.5px; }
+.jg-use-bar { height: 7px; border-radius: 980px; background: var(--bg-sunk); overflow: hidden; }
+.jg-use-bar i { display: block; height: 100%; background: var(--accent); border-radius: 980px; }
+.jg-msgs { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; }
+.jg-msg { display: flex; gap: 9px; align-items: baseline; width: 100%; text-align: left; border: 0; background: none; padding: 5px 8px; border-radius: 7px; font: inherit; color: var(--text); cursor: pointer; }
+.jg-msg:hover { background: var(--hair); }
+.jg-msg-sev { flex: none; width: 16px; text-align: center; font-weight: 700; }
+.jg-msg-err .jg-msg-sev { color: var(--issue); }
+.jg-msg-warn .jg-msg-sev { color: var(--on-warn); }
+.jg-msg-at { flex: none; font: 12.5px var(--mono); color: var(--text-2); }
+.jg-msg-text { min-width: 0; }
+.jg-log { margin-top: 8px; }
+.jg-log summary { cursor: pointer; color: var(--text-2); font-size: 12.5px; }
+.jg-log pre { margin: 6px 0 0; padding: 10px 12px; background: var(--bg-sunk); border-radius: 8px; font: 12px/1.45 var(--mono); white-space: pre-wrap; max-height: 260px; overflow: auto; }
+
+@media (max-width: 860px) {
+  .toolbar-actions .btn { padding: 6px 11px; }
+  .jg-board-chip { display: none; }
+  .jg-build { max-height: 45%; }
+}
